@@ -851,7 +851,7 @@ void Weapon_Blaster_Fire (edict_t *ent)
 	if (deathmatch->value)
 		damage = 15;
 	else
-		damage = 10;
+		damage = 1000;
 	Blaster_Fire (ent, vec3_origin, damage, false, EF_BLASTER);
 	ent->client->ps.gunframe++;
 }
@@ -1186,7 +1186,7 @@ void weapon_shotgun_fire (edict_t *ent)
 	vec3_t		start;
 	vec3_t		forward, right;
 	vec3_t		offset;
-	int			damage = 4;
+	int			damage = 25;
 	int			kick = 8;
 
 	if (ent->client->ps.gunframe == 9)
@@ -1212,7 +1212,7 @@ void weapon_shotgun_fire (edict_t *ent)
 	if (deathmatch->value)
 		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
 	else
-		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
+		fire_shotgun (ent, start, forward, damage, kick, 2500, 2500, 50, MOD_SHOTGUN);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
