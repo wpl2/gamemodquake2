@@ -616,6 +616,12 @@ void InitClientPersistant (gclient_t *client)
 
 	client->pers.weapon = item;
 
+	item = FindItem("Shotgun");
+	client->pers.selected_item = ITEM_INDEX(item);
+	client->pers.inventory[client->pers.selected_item] = 1;
+
+	client->pers.weapon = item;
+
 	client->pers.health			= 100;
 	client->pers.max_health		= 100;
 
@@ -1105,6 +1111,8 @@ void PutClientInServer (edict_t *ent)
 	client_persistant_t	saved;
 	client_respawn_t	resp;
 
+	gitem_t *item;
+
 	// find a spawn point
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
@@ -1249,6 +1257,9 @@ void PutClientInServer (edict_t *ent)
 	}
 
 	gi.linkentity (ent);
+
+	item = FindItem("Shells");
+	Add_Ammo(ent, item, 100);
 
 	// force the current weapon up
 	client->newweapon = client->pers.weapon;
