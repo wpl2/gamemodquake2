@@ -606,21 +606,23 @@ but is called after each death and level change in deathmatch
 */
 void InitClientPersistant (gclient_t *client)
 {
-	gitem_t		*item;
+	gitem_t		*blasterItem;
+	gitem_t		*shotgunItem;
+	gitem_t		*shellsItem;
 
 	memset (&client->pers, 0, sizeof(client->pers));
 
-	item = FindItem("Blaster");
-	client->pers.selected_item = ITEM_INDEX(item);
-	client->pers.inventory[client->pers.selected_item] = 1;
+	blasterItem = FindItem("Blaster");
+	client->pers.inventory[ITEM_INDEX(blasterItem)] = 1;
 
-	client->pers.weapon = item;
+	shotgunItem = FindItem("Shotgun");
+	client->pers.selected_item = ITEM_INDEX(shotgunItem);
+	client->pers.inventory[ITEM_INDEX(shotgunItem)] = 1;
 
-	item = FindItem("Shotgun");
-	client->pers.selected_item = ITEM_INDEX(item);
-	client->pers.inventory[client->pers.selected_item] = 1;
+	client->pers.weapon = shotgunItem;
 
-	client->pers.weapon = item;
+	shellsItem = FindItem("Shells");
+	client->pers.inventory[ITEM_INDEX(shellsItem)] = 100;
 
 	client->pers.health			= 100;
 	client->pers.max_health		= 100;
@@ -1111,8 +1113,6 @@ void PutClientInServer (edict_t *ent)
 	client_persistant_t	saved;
 	client_respawn_t	resp;
 
-	gitem_t *item;
-
 	// find a spawn point
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
@@ -1257,9 +1257,6 @@ void PutClientInServer (edict_t *ent)
 	}
 
 	gi.linkentity (ent);
-
-	item = FindItem("Shells");
-	Add_Ammo(ent, item, 100);
 
 	// force the current weapon up
 	client->newweapon = client->pers.weapon;
