@@ -849,7 +849,7 @@ void Weapon_Blaster_Fire (edict_t *ent)
 	int		damage;
 
 	if (deathmatch->value)
-		damage = 15;
+		damage = 1000;
 	else
 		damage = 1000;
 	Blaster_Fire (ent, vec3_origin, damage, false, EF_BLASTER);
@@ -1210,7 +1210,7 @@ void weapon_shotgun_fire (edict_t *ent)
 	}
 
 	if (deathmatch->value)
-		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
+		fire_shotgun (ent, start, forward, damage, kick, 2500, 2500, 50, MOD_SHOTGUN);
 	else
 		fire_shotgun (ent, start, forward, damage, kick, 2500, 2500, 50, MOD_SHOTGUN);
 
