@@ -1101,7 +1101,7 @@ void PutClientInServer (edict_t *ent)
 	int		index;
 	vec3_t	spawn_origin, spawn_angles;
 	gclient_t	*client;
-	int		i;
+	int		i, j, numclients;
 	client_persistant_t	saved;
 	client_respawn_t	resp;
 
@@ -1202,6 +1202,15 @@ void PutClientInServer (edict_t *ent)
 			client->ps.fov = 90;
 		else if (client->ps.fov > 160)
 			client->ps.fov = 160;
+	}
+
+	for (j = numclients = 0; j < maxclients->value; j++)
+			if (g_edicts[j+1].inuse && !g_edicts[j+1].client->pers.spectator)
+				numclients++;
+
+	if (deathmatch->value && numclients > 1 && (numclients % 2) != 0)
+	{
+		client->pers.spectator = true;
 	}
 
 	client->ps.gunindex = gi.modelindex(client->pers.weapon->view_model);
