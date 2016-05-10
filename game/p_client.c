@@ -635,6 +635,10 @@ void InitClientResp (gclient_t *client)
 	memset (&client->resp, 0, sizeof(client->resp));
 	client->resp.enterframe = level.framenum;
 	client->resp.coop_respawn = client->pers;
+
+	client->resp.buffed = false;
+	client->resp.debuffed = false;
+	client->resp.place = 1;
 }
 
 /*
@@ -1580,8 +1584,15 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 {
 	gclient_t	*client;
 	edict_t	*other;
-	int		i, j;
+	int		i, j, k;
 	pmove_t	pm;
+
+	int sorted[MAX_CLIENTS];
+	int sortedscores[MAX_CLIENTS];
+	int score, total;
+
+	gclient_t *cl;
+	edict_t *cl_ent;
 
 	level.current_entity = ent;
 	client = ent->client;
@@ -1749,6 +1760,40 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		other = g_edicts + i;
 		if (other->inuse && other->client->chase_target == ent)
 			UpdateChaseCam(other);
+	}
+
+	total = 0;
+	for (i = 0; i < game.maxclients; i++)
+	{
+		cl_ent = g_edicts + 1 + i;
+		if (!cl_ent->inuse || game.clients[i].resp.spectator)
+			continue;
+		score = game.clients[i].resp.score;
+		for (j = 0; j < total; j++)
+		{
+			if (score > sortedscores[j])
+				break;
+		}
+		for (k = total; k > j; k--)
+		{
+			sorted[k] = sorted[k - 1];
+			sortedscores[k] = sortedscores[k - 1];
+		}
+		sorted[j] = i;
+		sortedscores[j] = score;
+		total++;
+	}
+
+	for (i = 0; i < total; i++)
+	{
+		cl = &game.clients[sorted[i]];
+		cl_ent = g_edicts + 1 + sorted[i];
+
+		if (strcmp(cl->pers.userinfo, client->pers.userinfo) == 0)
+		{
+			client->resp.place = i;
+			break;
+		}
 	}
 }
 
