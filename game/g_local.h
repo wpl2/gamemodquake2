@@ -871,6 +871,8 @@ typedef struct
 	int			enterframe;			// level.framenum the client entered the game
 	int			score;				// frags, etc
 	int			place;
+	int			total;
+	int			sorted[MAX_CLIENTS];
 	vec3_t		cmd_angles;			// angles sent over in the last command
 
 	qboolean	spectator;			// client is a spectator
