@@ -506,7 +506,7 @@ void G_SetStats (edict_t *ent)
 	//
 	// frags
 	//
-	ent->client->ps.stats[STAT_FRAGS] = ent->client->resp.score;
+	ent->client->ps.stats[STAT_FRAGS] = ent->client->resp.place + 1;
 
 	//
 	// help icon / current weapon if not shown
