@@ -1795,6 +1795,23 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			break;
 		}
 	}
+
+	if (total == 1)
+	{
+		client->resp.buffed = false;
+		client->resp.debuffed = false;
+		gi.bprintf(PRINT_HIGH, "alone\n");
+	}
+	else if (client->resp.place < (total / 2))
+	{
+		client->resp.buffed = true;
+		client->resp.debuffed = false;
+	}
+	else
+	{
+		client->resp.buffed = false;
+		client->resp.debuffed = true;
+	}
 }
 
 
