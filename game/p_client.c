@@ -1783,6 +1783,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		sortedscores[j] = score;
 		total++;
 	}
+	
+	client->resp.total = total;
 
 	for (i = 0; i < total; i++)
 	{
@@ -1800,17 +1802,16 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	{
 		client->resp.buffed = false;
 		client->resp.debuffed = false;
-		gi.bprintf(PRINT_HIGH, "alone\n");
 	}
 	else if (client->resp.place < (total / 2))
 	{
-		client->resp.buffed = true;
-		client->resp.debuffed = false;
+		client->resp.buffed = false;
+		client->resp.debuffed = true;
 	}
 	else
 	{
-		client->resp.buffed = false;
-		client->resp.debuffed = true;
+		client->resp.buffed = true;
+		client->resp.debuffed = false;
 	}
 }
 
