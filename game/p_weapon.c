@@ -714,6 +714,8 @@ void weapon_grenadelauncher_fire (edict_t *ent)
 	int		damage = 120;
 	float	radius;
 
+	gclient_t	*cl;
+
 	radius = damage+40;
 	if (is_quad)
 		damage *= 4;
@@ -725,7 +727,33 @@ void weapon_grenadelauncher_fire (edict_t *ent)
 	VectorScale (forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -1;
 
-	fire_grenade (ent, start, forward, damage, 600, 2.5, radius);
+	gi.bprintf(PRINT_HIGH, "before\n");
+
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+		{
+			fire_grenade (ent, start, forward, damage, 600, 2.5, radius);
+			gi.bprintf(PRINT_HIGH, "first\n");
+		}
+		else if (ent->client->resp.buffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			fire_grenade (ent, start, forward, damage, 600, 2.5, radius + (cl->resp.score * 10));
+			gi.bprintf(PRINT_HIGH, "%s fired grenades with a radius of %f ft.\n", ent->client->pers.netname, radius + (cl->resp.score * 10));
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			fire_grenade (ent, start, forward, damage, 600, 2.5, radius - (cl->resp.score * 10));
+			gi.bprintf(PRINT_HIGH, "%s fired grenades with a radius of %f ft.\n", ent->client->pers.netname, radius - (cl->resp.score * 10));
+		}
+	}
+	else
+	{
+		fire_grenade (ent, start, forward, damage, 600, 2.5, radius);
+		gi.bprintf(PRINT_HIGH, "last\n");
+	}
 
 	gi.WriteByte (svc_muzzleflash);
 	gi.WriteShort (ent-g_edicts);
@@ -764,6 +792,8 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	float	damage_radius;
 	int		radius_damage;
 
+	gclient_t	*cl;
+
 	damage = 100 + (int)(random() * 20.0);
 	radius_damage = 120;
 	damage_radius = 120;
@@ -780,7 +810,25 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+			fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+		else if (ent->client->resp.buffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			fire_rocket (ent, start, forward, damage, 650 + (cl->resp.score * 50), damage_radius, radius_damage);
+			gi.bprintf(PRINT_HIGH, "%s fired a rocket at %d mph.\n", ent->client->pers.netname, 650 + (cl->resp.score * 50));
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+			gi.bprintf(PRINT_HIGH, "%s fired a rocket at %d mph.\n", ent->client->pers.netname, 650 - (cl->resp.score * 50));
+		}
+	}
+	else
+		fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -819,6 +867,8 @@ void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, qboolean hyper, in
 	vec3_t	start;
 	vec3_t	offset;
 
+	int i;
+
 	if (is_quad)
 		damage *= 4;
 	AngleVectors (ent->client->v_angle, forward, right, NULL);
@@ -829,7 +879,21 @@ void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, qboolean hyper, in
 	VectorScale (forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -1;
 
-	fire_blaster (ent, start, forward, damage, 1000, effect, hyper);
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+			fire_blaster (ent, start, forward, damage, 1000, effect, hyper);
+		else
+		{
+			for (i = 0; i < (ent->client->resp.place + 1); i++)
+				fire_blaster (ent, start, forward, damage, 1000, effect, hyper);
+			gi.bprintf(PRINT_HIGH, "%s fired %d times.\n", ent->client->pers.netname, ent->client->resp.place + 1);
+		}
+	}
+	else
+	{
+		fire_blaster (ent, start, forward, damage, 1000, effect, hyper);
+	}
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -956,9 +1020,11 @@ void Machinegun_Fire (edict_t *ent)
 	vec3_t		start;
 	vec3_t		forward, right;
 	vec3_t		angles;
-	int			damage = 8;
+	int			damage = fraglimit->value;
 	int			kick = 2;
 	vec3_t		offset;
+
+	gclient_t	*cl;
 
 	if (!(ent->client->buttons & BUTTON_ATTACK))
 	{
@@ -1011,7 +1077,27 @@ void Machinegun_Fire (edict_t *ent)
 	AngleVectors (angles, forward, right, NULL);
 	VectorSet(offset, 0, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_bullet (ent, start, forward, damage, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+			fire_bullet (ent, start, forward, damage, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+		else if (ent->client->resp.buffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			fire_bullet (ent, start, forward, damage + cl->resp.score, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired with %d dps.\n", ent->client->pers.netname, damage + cl->resp.score);
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			fire_bullet (ent, start, forward, damage - cl->resp.score, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired with %d dps.\n", ent->client->pers.netname, damage - cl->resp.score);
+		}
+	}
+	else
+	{
+		fire_bullet (ent, start, forward, damage, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_MACHINEGUN);
+	}
 
 	gi.WriteByte (svc_muzzleflash);
 	gi.WriteShort (ent-g_edicts);
@@ -1147,7 +1233,6 @@ void Chaingun_Fire (edict_t *ent)
 		u = crandom()*4;
 		VectorSet(offset, 0, r, u + ent->viewheight-8);
 		P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-
 		fire_bullet (ent, start, forward, damage, kick, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, MOD_CHAINGUN);
 	}
 
@@ -1160,7 +1245,24 @@ void Chaingun_Fire (edict_t *ent)
 	PlayerNoise(ent, start, PNOISE_WEAPON);
 
 	if (! ( (int)dmflags->value & DF_INFINITE_AMMO ) )
-		ent->client->pers.inventory[ent->client->ammo_index] -= shots;
+		if (deathmatch->value)
+		{
+			if (ent->client->resp.total == 1);
+			else if (ent->client->resp.buffed)
+			{
+				ent->client->pers.inventory[ent->client->ammo_index] -= shots / 2;
+				gi.bprintf(PRINT_HIGH, "%s lost half ammo.\n", ent->client->pers.netname);
+			}
+			else if (ent->client->resp.debuffed)
+			{
+				ent->client->pers.inventory[ent->client->ammo_index] -= shots * 2;
+				gi.bprintf(PRINT_HIGH, "%s lost double ammo.\n", ent->client->pers.netname);
+			}
+		}
+		else
+		{
+			ent->client->pers.inventory[ent->client->ammo_index] -= shots;
+		}
 }
 
 
@@ -1189,6 +1291,8 @@ void weapon_shotgun_fire (edict_t *ent)
 	int			damage = 4;
 	int			kick = 8;
 
+	gclient_t	*cl;
+
 	if (ent->client->ps.gunframe == 9)
 	{
 		ent->client->ps.gunframe++;
@@ -1215,13 +1319,15 @@ void weapon_shotgun_fire (edict_t *ent)
 			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
 		else if (ent->client->resp.buffed)
 		{
-			gclient_t *cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
 			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT + cl->resp.score, MOD_SHOTGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired %d pellets.\n", ent->client->pers.netname, DEFAULT_DEATHMATCH_SHOTGUN_COUNT + cl->resp.score);
 		}
 		else if (ent->client->resp.debuffed)
 		{
-			gclient_t *cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
 			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT - cl->resp.score, MOD_SHOTGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired %d pellets.\n", ent->client->pers.netname, DEFAULT_DEATHMATCH_SHOTGUN_COUNT - cl->resp.score);
 		}
 	}
 	else
@@ -1258,6 +1364,8 @@ void weapon_supershotgun_fire (edict_t *ent)
 	int			damage = 6;
 	int			kick = 12;
 
+	gclient_t	*cl;
+
 	AngleVectors (ent->client->v_angle, forward, right, NULL);
 
 	VectorScale (forward, -2, ent->client->kick_origin);
@@ -1272,14 +1380,57 @@ void weapon_supershotgun_fire (edict_t *ent)
 		kick *= 4;
 	}
 
-	v[PITCH] = ent->client->v_angle[PITCH];
-	v[YAW]   = ent->client->v_angle[YAW] - 5;
-	v[ROLL]  = ent->client->v_angle[ROLL];
-	AngleVectors (v, forward, NULL, NULL);
-	fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
-	v[YAW]   = ent->client->v_angle[YAW] + 5;
-	AngleVectors (v, forward, NULL, NULL);
-	fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+		{
+			v[PITCH] = ent->client->v_angle[PITCH];
+			v[YAW]   = ent->client->v_angle[YAW] - 5;
+			v[ROLL]  = ent->client->v_angle[ROLL];
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+			v[YAW]   = ent->client->v_angle[YAW] + 5;
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+		}
+		else if (ent->client->resp.buffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			v[PITCH] = ent->client->v_angle[PITCH];
+			v[YAW]   = ent->client->v_angle[YAW] - 5;
+			v[ROLL]  = ent->client->v_angle[ROLL];
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD - (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD - (cl->resp.score * 100), DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+			v[YAW]   = ent->client->v_angle[YAW] + 5;
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD - (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD - (cl->resp.score * 100), DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired with spread of (%d, %d).\n", ent->client->pers.netname, DEFAULT_SHOTGUN_HSPREAD - (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD - (cl->resp.score * 100));
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			v[PITCH] = ent->client->v_angle[PITCH];
+			v[YAW]   = ent->client->v_angle[YAW] - 5;
+			v[ROLL]  = ent->client->v_angle[ROLL];
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD + (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD + (cl->resp.score * 100), DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+			v[YAW]   = ent->client->v_angle[YAW] + 5;
+			AngleVectors (v, forward, NULL, NULL);
+			fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD + (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD + (cl->resp.score * 100), DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+			gi.bprintf(PRINT_HIGH, "%s fired with spread of (%d, %d).\n", ent->client->pers.netname, DEFAULT_SHOTGUN_HSPREAD + (cl->resp.score * 100), DEFAULT_SHOTGUN_VSPREAD + (cl->resp.score * 100));
+		}
+	}
+	else
+	{
+		v[PITCH] = ent->client->v_angle[PITCH];
+		v[YAW]   = ent->client->v_angle[YAW] - 5;
+		v[ROLL]  = ent->client->v_angle[ROLL];
+		AngleVectors (v, forward, NULL, NULL);
+		fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+		v[YAW]   = ent->client->v_angle[YAW] + 5;
+		AngleVectors (v, forward, NULL, NULL);
+		fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SSHOTGUN_COUNT/2, MOD_SSHOTGUN);
+	}
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1320,6 +1471,8 @@ void weapon_railgun_fire (edict_t *ent)
 	int			damage;
 	int			kick;
 
+	int			i, effect;
+
 	if (deathmatch->value)
 	{	// normal damage is too extreme in dm
 		damage = 100;
@@ -1344,7 +1497,24 @@ void weapon_railgun_fire (edict_t *ent)
 
 	VectorSet(offset, 0, 7,  ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rail (ent, start, forward, damage, kick);
+	if (deathmatch->value)
+	{
+		effect = rand() % 2;
+		if (ent->client->resp.total == 1 || !effect)
+			fire_rail (ent, start, forward, damage, kick);
+		else if (ent->client->resp.buffed)
+		{
+			for (i = 0; i < 2; i++)
+				fire_rail (ent, start, forward, damage, kick);
+			gi.bprintf(PRINT_HIGH, "%s got a double-shot.\n", ent->client->pers.netname);
+		}
+		else if (ent->client->resp.debuffed)
+			gi.bprintf(PRINT_HIGH, "%s misfired.\n", ent->client->pers.netname);
+	}
+	else
+	{
+		fire_rail (ent, start, forward, damage, kick);
+	}
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -1383,6 +1553,8 @@ void weapon_bfg_fire (edict_t *ent)
 	vec3_t	forward, right;
 	int		damage;
 	float	damage_radius = 1000;
+
+	gclient_t	*cl;
 
 	if (deathmatch->value)
 		damage = 200;
@@ -1425,7 +1597,25 @@ void weapon_bfg_fire (edict_t *ent)
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
 	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_bfg (ent, start, forward, damage, 400, damage_radius);
+	if (deathmatch->value)
+	{
+		if (ent->client->resp.total == 1)
+			fire_bfg (ent, start, forward, damage, 400, damage_radius);
+		else if (ent->client->resp.buffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			fire_bfg (ent, start, forward, damage, 400 - (cl->resp.score * 50), damage_radius);
+			gi.bprintf(PRINT_HIGH, "%s fired a bfg at %d mph.\n", ent->client->pers.netname, 400 - (cl->resp.score * 50));
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			fire_bfg (ent, start, forward, damage, 400 + (cl->resp.score * 50), damage_radius);
+			gi.bprintf(PRINT_HIGH, "%s fired a bfg at %d mph.\n", ent->client->pers.netname, 400 + (cl->resp.score * 50));
+		}
+	}
+	else
+		fire_bfg (ent, start, forward, damage, 400, damage_radius);
 
 	ent->client->ps.gunframe++;
 
