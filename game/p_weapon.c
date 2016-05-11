@@ -1210,7 +1210,20 @@ void weapon_shotgun_fire (edict_t *ent)
 	}
 
 	if (deathmatch->value)
-		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
+	{
+		if (ent->client->resp.total == 1)
+			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT, MOD_SHOTGUN);
+		else if (ent->client->resp.buffed)
+		{
+			gclient_t *cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place * 2]];
+			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT + cl->resp.score, MOD_SHOTGUN);
+		}
+		else if (ent->client->resp.debuffed)
+		{
+			gclient_t *cl = &game.clients[ent->client->resp.sorted[ent->client->resp.place / 2]];
+			fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_DEATHMATCH_SHOTGUN_COUNT - cl->resp.score, MOD_SHOTGUN);
+		}
+	}
 	else
 		fire_shotgun (ent, start, forward, damage, kick, 500, 500, DEFAULT_SHOTGUN_COUNT, MOD_SHOTGUN);
 
